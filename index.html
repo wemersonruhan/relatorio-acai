@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Relatório Açaí</title>
+
+    <!-- PWA Manifest Link (será preenchido via script) -->
+    <link id="manifest-link" rel="manifest">
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#ffffff"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Relatório Açaí">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos personalizados para a aplicação */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent; /* Remove highlight azul no toque */
+        }
+
+        html { scroll-behavior: smooth; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animações */
+        .modal-enter { transform: translateY(100%); }
+        .modal-enter-active { transform: translateY(0); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+        .modal-exit-active { transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.5, 0, 0.75, 0); }
+        
+        .form-enter { max-height: 0; opacity: 0; transform: translateY(-10px); }
+        .form-enter-active { max-height: 600px; opacity: 1; transform: translateY(0); transition: all 0.4s ease-in-out; }
+        
+        .actions-enter { transform: translateY(100%); opacity: 0; }
+        .actions-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+
+        .fade-in { animation: fadeIn 0.3s ease; }
+        .fade-out { animation: fadeOut 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(10px); } }
+
+        /* Estilo para item selecionado */
+        .harvest-item.selected {
+            border-color: #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        .day-cell.selected {
+            background-color: #dbeafe; /* blue-100 */
+            color: #1e40af; /* blue-800 */
+            font-weight: 600;
+        }
+
+        /* Desabilita a seleção de texto nos itens interativos */
+        .day-cell, .harvest-item {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Padrão */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <!-- Container principal do aplicativo -->
+    <div id="app" class="relative w-full max-w-[430px] h-screen max-h-[932px] bg-white text-gray-800 overflow-hidden flex flex-col rounded-3xl shadow-xl">
+
+        <!-- Tela Principal: Calendário -->
+        <div id="calendar-view" class="flex flex-col h-full">
+            <header class="p-6 pb-4 flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight text-gray-900">Registros</h1>
+                    <p class="text-gray-500">Colheitas de Açaí</p>
+                </div>
+                <button id="settings-btn" class="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </header>
+            <main class="flex-grow flex flex-col px-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="month-year" class="text-xl font-semibold text-gray-900"></h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="prev-month" class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+                        <button id="next-month" class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                    </div>
+                </div>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-medium">
+                    <!-- Dias da semana e células do calendário são inseridos aqui via JS -->
+                </div>
+            </main>
+            <!-- Barra de Ações do Calendário -->
+            <footer id="calendar-actions" class="hidden p-4 border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+                <div class="flex justify-around items-center gap-3">
+                    <button id="cancel-calendar-selection-btn" class="flex flex-col items-center text-gray-600 hover:text-gray-800 transition-colors space-y-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span class="text-xs font-semibold">Cancelar</span>
+                    </button>
+                    <button id="share-calendar-selection-btn" class="flex flex-col items-center text-blue-600 hover:text-blue-800 transition-colors space-y-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                        <span class="text-xs font-semibold">Compartilhar</span>
+                    </button>
+                </div>
+            </footer>
+        </div>
+        
+        <!-- Tela de Detalhes do Dia (Modal) -->
+        <div id="day-modal" class="absolute inset-0 bg-gray-50 transform translate-y-full z-20 flex flex-col">
+            <header class="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-gray-50/80 backdrop-blur-sm">
+                <h3 id="modal-date" class="text-lg font-semibold text-gray-900"></h3>
+                <button id="close-modal" class="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </header>
+            
+            <div id="day-details-content" class="flex-grow overflow-y-auto p-6 space-y-6">
+                <!-- Seção de Valor de Venda -->
+                <div id="sale-price-section" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <div id="sale-price-display" class="flex justify-between items-center">
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-500">Valor da Rasa</h4>
+                            <p id="current-sale-price" class="text-2xl font-bold text-green-600">R$ 0,00</p>
+                        </div>
+                        <button id="edit-price-btn" class="text-sm font-semibold text-blue-600 hover:text-blue-800">Editar</button>
+                    </div>
+                    <form id="set-sale-price-form" class="hidden mt-3 space-y-2">
+                         <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">R$</span>
+                            <input type="number" step="0.01" name="price" placeholder="0,00" class="w-full bg-gray-50 p-2 pl-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold p-2 rounded-lg text-sm transition-colors">Salvar</button>
+                            <button type="button" id="cancel-edit-price-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold p-2 rounded-lg text-sm transition-colors">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Seção das Colheitas -->
+                <div class="space-y-4">
+                     <div class="flex justify-between items-center">
+                        <h4 class="text-lg font-semibold text-gray-800">Colheitas do Dia</h4>
+                        <button id="add-harvest-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg flex items-center space-x-2 text-sm transition-colors shadow-sm hover:shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            <span>Adicionar</span>
+                        </button>
+                    </div>
+
+                    <form id="harvest-form" class="hidden bg-white p-4 rounded-xl border border-gray-200 space-y-3 overflow-hidden">
+                        <h5 id="form-title" class="text-md font-semibold text-center mb-2">Registrar Nova Colheita</h5>
+                        <input type="hidden" name="id">
+                        <div class="relative">
+                            <input type="text" name="owner" placeholder="Proprietário" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                            <div class="autocomplete-suggestions hidden absolute z-10 w-full bg-white border border-gray-300 rounded-b-lg shadow-lg max-h-32 overflow-y-auto"></div>
+                        </div>
+                        <div class="relative">
+                            <input type="text" name="land" placeholder="Terreno" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                             <div class="autocomplete-suggestions hidden absolute z-10 w-full bg-white border border-gray-300 rounded-b-lg shadow-lg max-h-32 overflow-y-auto"></div>
+                        </div>
+                        <div class="relative">
+                            <input type="text" name="harvester" placeholder="Peconheiro" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                             <div class="autocomplete-suggestions hidden absolute z-10 w-full bg-white border border-gray-300 rounded-b-lg shadow-lg max-h-32 overflow-y-auto"></div>
+                        </div>
+                        <input type="number" name="quantity" placeholder="Rasas" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required>
+                        <input type="number" step="0.1" name="extraKilos" placeholder="Quilos" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" min="0">
+                        <button type="submit" id="form-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold p-3 rounded-lg transition-colors shadow-sm hover:shadow-md">Registrar Colheita</button>
+                        <button type="button" id="form-cancel-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold p-2 rounded-lg text-sm transition-colors mt-2">Cancelar</button>
+                    </form>
+
+                    <div id="harvest-list" class="space-y-3 pb-24">
+                       <!-- Lista de colheitas será injetada aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Ações de Seleção -->
+            <div id="selection-actions" class="hidden absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-gray-200 p-4 z-10">
+                <div class="flex justify-around items-center gap-3">
+                     <button id="cancel-harvest-selection-btn" class="flex flex-col items-center text-gray-600 hover:text-gray-800 transition-colors space-y-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span class="text-xs font-semibold">Cancelar</span>
+                    </button>
+                    <button id="edit-selected-btn" class="flex flex-col items-center text-blue-600 hover:text-blue-800 transition-colors space-y-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                        <span class="text-xs font-semibold">Editar</span>
+                    </button>
+                    <button id="delete-selected-btn" class="flex flex-col items-center text-red-600 hover:text-red-800 transition-colors space-y-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        <span class="text-xs font-semibold">Excluir</span>
+                    </button>
+                    <button id="share-selected-btn" class="flex flex-col items-center text-gray-600 hover:text-gray-800 transition-colors space-y-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                        <span class="text-xs font-semibold">Compartilhar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tela de Configurações (Modal) -->
+        <div id="settings-modal" class="absolute inset-0 bg-gray-50 transform translate-y-full z-30 flex flex-col">
+            <header class="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-gray-50/80 backdrop-blur-sm">
+                <h3 class="text-lg font-semibold text-gray-900">Configurações</h3>
+                <button id="close-settings-modal" class="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </header>
+            <div class="flex-grow overflow-y-auto p-6 space-y-4">
+                <div class="p-4 bg-white rounded-xl border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-2">Backup de Dados</h4>
+                    <p class="text-sm text-gray-500 mb-4">Exporte seus dados como um arquivo para backup ou importe um arquivo para restaurar seus registros.</p>
+                    <div class="flex space-x-3">
+                         <button id="export-data-btn" class="w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors">Exportar Dados</button>
+                         <button id="import-data-btn" class="w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-xl transition-colors">Importar Dados</button>
+                    </div>
+                </div>
+                <div class="p-4 bg-white rounded-xl border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-2">Gerenciar Nomes</h4>
+                    <p class="text-sm text-gray-500 mb-4">Adicione ou remova proprietários, terrenos e peconheiros para agilizar o registro.</p>
+                    <button id="management-btn" class="w-full text-center bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors">Gestão</button>
+                </div>
+                <input type="file" id="import-file-input" class="hidden" accept=".json,application/json">
+            </div>
+        </div>
+
+        <!-- Tela de Gestão (Modal) -->
+        <div id="management-modal" class="absolute inset-0 bg-gray-50 transform translate-y-full z-40 flex flex-col">
+            <header class="flex items-center p-4 border-b border-gray-200 sticky top-0 bg-gray-50/80 backdrop-blur-sm">
+                <button id="close-management-modal" class="p-2 rounded-full text-gray-500 hover:bg-gray-200 transition-colors mr-2"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+                <h3 class="text-lg font-semibold text-gray-900">Gestão</h3>
+            </header>
+            <div class="flex-grow overflow-y-auto p-6 space-y-6">
+                <!-- Seção de Proprietários -->
+                <div class="p-4 bg-white rounded-xl border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-3">Proprietários</h4>
+                    <form id="owner-form" class="flex gap-2 mb-3">
+                        <input type="text" name="name" placeholder="Novo proprietário" class="flex-grow p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors flex-shrink-0">+</button>
+                    </form>
+                    <div id="owner-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+                <!-- Seção de Terrenos -->
+                <div class="p-4 bg-white rounded-xl border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-3">Terrenos</h4>
+                    <form id="land-form" class="flex gap-2 mb-3">
+                        <input type="text" name="name" placeholder="Novo terreno" class="flex-grow p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors flex-shrink-0">+</button>
+                    </form>
+                    <div id="land-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+                <!-- Seção de Peconheiros -->
+                <div class="p-4 bg-white rounded-xl border border-gray-200">
+                    <h4 class="font-semibold text-gray-800 mb-3">Peconheiros</h4>
+                    <form id="harvester-form" class="flex gap-2 mb-3">
+                        <input type="text" name="name" placeholder="Novo peconheiro" class="flex-grow p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 rounded-lg flex items-center justify-center w-10 h-10 transition-colors flex-shrink-0">+</button>
+                    </form>
+                    <div id="harvester-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal de Confirmação de Exclusão -->
+        <div id="delete-confirm-modal" class="hidden absolute inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-6">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+                <h3 id="delete-confirm-title" class="text-lg font-bold text-gray-900">Confirmar Exclusão</h3>
+                <p class="text-gray-600 mt-2 mb-6">Você tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.</p>
+                <div class="flex space-x-3">
+                    <button id="cancel-delete-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
+                    <button id="confirm-delete-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Excluir</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação de Importação -->
+        <div id="import-confirm-modal" class="hidden absolute inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-6">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+                <h3 class="text-lg font-bold text-gray-900">Confirmar Importação</h3>
+                <p class="text-gray-600 mt-2 mb-6">Isso substituirá TODOS os dados atuais. Deseja continuar?</p>
+                <div class="flex space-x-3">
+                    <button id="cancel-import-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
+                    <button id="confirm-import-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Importar</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notificação Toast -->
+        <div id="toast-notification" class="hidden absolute bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm py-2 px-4 rounded-full shadow-lg z-50">
+            <p id="toast-message"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- PWA SETUP SCRIPT ---
+        const PWA_SETUP = () => {
+            // 1. Create Manifest Blob
+            const manifest = {
+                "name": "Relatório Açaí",
+                "short_name": "Relatórios",
+                "description": "Aplicativo para registrar relatórios de colheitas de açaí.",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#ffffff",
+                "theme_color": "#ffffff",
+                "icons": [
+                    {
+                        "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiI+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEyIj48cGF0aCBzdHJva2U9IiM0YzE1MTUiIGQ9Ik0zNSA5My43M2M0LjgtMTQuMzcgMTYuMi0zMi4xMyAyNC4xLTQwLjQxQzY3IDE3IDg5IDE3IDEwMS44MyAxNy4zN2MxMy4xMS4zOCA0My4xNyAxLjE0IDQ2LjE3IDQ2LjE3LjM3IDEzLjExIDAgMzQuODMtMjYuMjIgNDIuNzFhMTQ5LjQgMTQ5LjQgMCAwIDEtNDAuNDEgMjQuMUM2Ny4yNyAxMzcgNDEuNzMgMTIzLjM3IDM1IDEwOS4yN3oiLz48cGF0aCBzdHJva2U9IiM2YjI4MmMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZD0iTTMwLjUgMTM5LjVzMjQuNS0uNSAzMi0xOG03NiA3cy0xMS41LTE4LTEuNS0zNSIvPjxwYXRoIHN0cm9rZT0iIzRjMTUxNSIgZD0iTTM1IDEwOWMzLjUtMTAuNSAxMC41LTIzLjUgMTUuNS0zMC41czE2LTI0IDIzLTI2czI2LTEgMzcgN2MxMC41IDcuNSAyMy41IDE5LjUgMzAuNSAzN2ExNDYgMTQ2IDAgMCAxLTIxIDM3Yy0xMS41IDQuNS0zMCA2LTM4IDQuNXMtMjAtOS41LTI2LTE1eiIvPjxwYXRoIHN0cm9rZT0iIzZiMjgyYyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBkPSJNMzYgNzVzMTMtMjcgMzMtMjVtNTQgODVzLTcgMjItMjcgMjNNNzAgNDhzMjEgMCAyMyAxOW0yOC41IDU4LjVzLS41IDI0LTIwIDI2Ii8+PC9nPjwvc3ZnPg==",
+                        "sizes": "192x192",
+                        "type": "image/svg+xml"
+                    },
+                    {
+                        "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEyIj48cGF0aCBzdHJva2U9IiM0YzE1MTUiIGQ9Ik03MSAxOTdjMTMuNS0zOSAyOS41LTgyIDQ2LTk4czM5LTQxIDY2LTQxYzM4IDAgMTIyIDIuNSAxMjggMTI4IDIgMzgtMyA5Ni03MiAxMTctNDUgMTMtMTA4IDM3LTExMSAzOHMtNTYtNy04MC0yNy0zOS01NC0yNi04N3oiLz48cGF0aCBzdHJva2U9IiM2YjI4MmMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZD0iTTYyIDM3NGM1My00IDYyLTU3IDYyLTU3bTE5MiAxN2MtMjktNDItMzYtODcgMzAtMTE5Ii8+PHBhdGggc3Ryb2tlPSIjNGMxNTE1IiBkPSJNNzEgMjg4YzEwLTMwIDM2LTcyIDUwLTg5czQxLTQyIDYyLTQ0YzM4LTMgOTggNSA5OCA4MiAwIDU4LTQyIDEwOC02OCAxMjFzLTc4IDUtMTAyLTFjLTIzLTYtNjAtNDAtODUtNzEtMjAtMjMtMjUtNTUtNS05OHoiLz48cGF0aCBzdHJva2U9IiM2YjI4MmMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZD0iTTgxIDE1NWMzMy03MiA4My02NyA4My02N20xNDQgMjI3Yy0yMCA1NS03MSA1Mi03MSA1Mm0tNzItMTM3YzU2LTIgNjEgNTEgNjEgNTFsMyA3NGMtMjggNjEtNzggNjctNzggNjciLz48L2c+PC9zdmc+",
+                        "sizes": "512x512",
+                        "type": "image/svg+xml"
+                    }
+                ]
+            };
+            const manifestString = JSON.stringify(manifest);
+            const manifestBlob = new Blob([manifestString], { type: 'application/json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            document.getElementById('manifest-link').setAttribute('href', manifestUrl);
+
+            // 2. Create Service Worker Blob
+            const swCode = `
+                const CACHE_NAME = 'acai-logger-cache-v1';
+                const assetsToCache = [
+                    '/',
+                    '/index.html'
+                ];
+
+                self.addEventListener('install', (event) => {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then((cache) => {
+                                // Since this is a single file app, we only need to cache the root.
+                                // The serviceworker URL is a blob, so we can't cache it directly.
+                                // We will cache the main document ('/') instead.
+                                return cache.add('/');
+                            })
+                    );
+                });
+
+                self.addEventListener('fetch', (event) => {
+                    // We only want to handle navigation requests for our single page app
+                    if (event.request.mode === 'navigate') {
+                        event.respondWith(
+                            caches.match('/')
+                                .then((cachedResponse) => {
+                                    return cachedResponse || fetch(event.request);
+                                })
+                        );
+                    }
+                });
+            `;
+            const swBlob = new Blob([swCode], { type: 'application/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+
+            // 3. Register Service Worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register(swUrl)
+                        .then(registration => {
+                            console.log('Service Worker registered with scope:', registration.scope);
+                        })
+                        .catch(error => {
+                            console.log('Service Worker registration failed:', error);
+                        });
+                });
+            }
+        };
+        PWA_SETUP();
+        
+        // --- APPLICATION SCRIPT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... (elementos da UI existentes)
+            const monthYearEl = document.getElementById('month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const dayModal = document.getElementById('day-modal');
+            const modalDateEl = document.getElementById('modal-date');
+            const closeModalBtn = document.getElementById('close-modal');
+            const harvestForm = document.getElementById('harvest-form');
+            const harvestListEl = document.getElementById('harvest-list');
+            const setSalePriceForm = document.getElementById('set-sale-price-form');
+            const addHarvestBtn = document.getElementById('add-harvest-btn');
+            const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+            const deleteConfirmTitle = document.getElementById('delete-confirm-title');
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            const selectionActions = document.getElementById('selection-actions');
+            const editSelectedBtn = document.getElementById('edit-selected-btn');
+            const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+            const shareSelectedBtn = document.getElementById('share-selected-btn');
+            const dayDetailsContent = document.getElementById('day-details-content');
+            const cancelHarvestSelectionBtn = document.getElementById('cancel-harvest-selection-btn');
+            const calendarActions = document.getElementById('calendar-actions');
+            const shareCalendarSelectionBtn = document.getElementById('share-calendar-selection-btn');
+            const cancelCalendarSelectionBtn = document.getElementById('cancel-calendar-selection-btn');
+            const formTitle = document.getElementById('form-title');
+            const formSubmitBtn = document.getElementById('form-submit-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsModal = document.getElementById('settings-modal');
+            const closeSettingsModalBtn = document.getElementById('close-settings-modal');
+            const exportDataBtn = document.getElementById('export-data-btn');
+            const importDataBtn = document.getElementById('import-data-btn');
+            const importFileInput = document.getElementById('import-file-input');
+            const importConfirmModal = document.getElementById('import-confirm-modal');
+            const cancelImportBtn = document.getElementById('cancel-import-btn');
+            const confirmImportBtn = document.getElementById('confirm-import-btn');
+            const toastEl = document.getElementById('toast-notification');
+            const toastMessageEl = document.getElementById('toast-message');
+
+            const managementBtn = document.getElementById('management-btn');
+            const managementModal = document.getElementById('management-modal');
+            const closeManagementModalBtn = document.getElementById('close-management-modal');
+            const ownerForm = document.getElementById('owner-form');
+            const landForm = document.getElementById('land-form');
+            const harvesterForm = document.getElementById('harvester-form');
+            const ownerListEl = document.getElementById('owner-list');
+            const landListEl = document.getElementById('land-list');
+            const harvesterListEl = document.getElementById('harvester-list');
+
+            // Estado da aplicação
+            let currentDate = new Date();
+            let selectedDate = null;
+            let selectedDates = [];
+            let calendarSelectionModeActive = false;
+            let calendarLongPressTimer;
+            let appData = JSON.parse(localStorage.getItem('acaiHarvestData')) || {};
+            if (!appData.management) {
+                appData.management = { owners: [], lands: [], harvesters: [] };
+            }
+            let selectedHarvestIds = [];
+            let harvestSelectionModeActive = false;
+            let harvestLongPressTimer;
+            let dataToImport = null;
+            let toastTimer;
+
+            const showToast = (message) => { clearTimeout(toastTimer); toastMessageEl.textContent = message; toastEl.classList.remove('hidden', 'fade-out'); toastEl.classList.add('fade-in'); toastTimer = setTimeout(() => { toastEl.classList.remove('fade-in'); toastEl.classList.add('fade-out'); toastEl.addEventListener('animationend', () => toastEl.classList.add('hidden'), { once: true }); }, 3000); };
+            const saveData = () => { localStorage.setItem('acaiHarvestData', JSON.stringify(appData)); };
+            const exportData = () => { const dataStr = JSON.stringify(appData, null, 2); const dataBlob = new Blob([dataStr], {type: "application/json"}); const url = URL.createObjectURL(dataBlob); const link = document.createElement('a'); link.href = url; link.download = `dados_acai_export_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); showToast("Dados exportados com sucesso!"); };
+            const handleFileImport = (event) => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const imported = JSON.parse(e.target.result); if (typeof imported === 'object' && imported !== null) { dataToImport = imported; importConfirmModal.classList.remove('hidden'); importConfirmModal.classList.add('fade-in'); } else { showToast("Erro: Arquivo JSON inválido."); } } catch (error) { showToast("Erro ao ler o arquivo."); console.error("Import error:", error); } }; reader.readAsText(file); importFileInput.value = ''; };
+            const openSettingsModal = () => { settingsModal.classList.remove('modal-exit-active', 'translate-y-full'); settingsModal.classList.add('modal-enter', 'modal-enter-active'); };
+            const closeSettingsModal = () => { settingsModal.classList.remove('modal-enter-active'); settingsModal.classList.add('modal-exit-active'); settingsModal.addEventListener('transitionend', () => settingsModal.classList.add('translate-y-full'), { once: true }); };
+            const closeImportConfirmModal = () => { importConfirmModal.classList.add('fade-out'); importConfirmModal.addEventListener('animationend', () => { importConfirmModal.classList.add('hidden'); importConfirmModal.classList.remove('fade-out'); dataToImport = null; }, { once: true }); };
+
+            const openManagementModal = () => { renderManagementLists(); managementModal.classList.remove('modal-exit-active', 'translate-y-full'); managementModal.classList.add('modal-enter', 'modal-enter-active'); };
+            const closeManagementModal = () => { managementModal.classList.remove('modal-enter-active'); managementModal.classList.add('modal-exit-active'); managementModal.addEventListener('transitionend', () => managementModal.classList.add('translate-y-full'), { once: true }); };
+            const renderManagementList = (list, container, category) => { container.innerHTML = ''; if (list.length === 0) { container.innerHTML = `<p class="text-gray-400 text-sm text-center">Nenhum item cadastrado.</p>`; return; } list.forEach(item => { const itemEl = document.createElement('div'); itemEl.className = 'flex items-center justify-between bg-gray-50 p-2 rounded-md'; itemEl.innerHTML = `
+                        <span class="text-sm">${item}</span>
+                        <button data-name="${item}" data-category="${category}" class="delete-management-item-btn text-red-500 hover:text-red-700 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    `; container.appendChild(itemEl); }); };
+            const renderManagementLists = () => { renderManagementList(appData.management.owners, ownerListEl, 'owners'); renderManagementList(appData.management.lands, landListEl, 'lands'); renderManagementList(appData.management.harvesters, harvesterListEl, 'harvesters'); };
+            const addManagementItem = (category, name) => { if (name && !appData.management[category].includes(name)) { appData.management[category].push(name); saveData(); renderManagementLists(); } };
+            const deleteManagementItem = (category, name) => { appData.management[category] = appData.management[category].filter(item => item !== name); saveData(); renderManagementLists(); };
+
+            const showSuggestions = (inputEl, category) => { const suggestionsContainer = inputEl.nextElementSibling; const value = inputEl.value.toLowerCase(); suggestionsContainer.innerHTML = ''; if (!value) { suggestionsContainer.classList.add('hidden'); return; } const suggestions = appData.management[category].filter(item => item.toLowerCase().includes(value)).slice(0, 5); if (suggestions.length > 0) { suggestions.forEach(suggestion => { const itemEl = document.createElement('div'); itemEl.textContent = suggestion; itemEl.className = 'p-2 cursor-pointer hover:bg-gray-100 text-sm'; itemEl.addEventListener('click', () => { inputEl.value = suggestion; suggestionsContainer.classList.add('hidden'); }); suggestionsContainer.appendChild(itemEl); }); suggestionsContainer.classList.remove('hidden'); } else { suggestionsContainer.classList.add('hidden'); } };
+
+            const updateCalendarSelectionUI = () => { const count = selectedDates.length; if (count > 0) { calendarActions.classList.remove('hidden', 'actions-enter'); calendarActions.classList.add('actions-enter-active'); } else { calendarActions.classList.remove('actions-enter-active'); calendarActions.classList.add('actions-enter'); calendarActions.addEventListener('transitionend', () => calendarActions.classList.add('hidden'), { once: true }); calendarSelectionModeActive = false; } };
+            const clearCalendarSelection = () => { selectedDates = []; calendarSelectionModeActive = false; updateCalendarSelectionUI(); renderCalendar(); };
+            const toggleDateSelection = (dateStr) => { const index = selectedDates.indexOf(dateStr); if (index > -1) { selectedDates.splice(index, 1); } else { selectedDates.push(dateStr); } if (selectedDates.length === 0) { calendarSelectionModeActive = false; } renderCalendar(); updateCalendarSelectionUI(); };
+            const renderCalendar = () => { calendarGrid.innerHTML = `<div class="text-gray-400">D</div><div class="text-gray-400">S</div><div class="text-gray-400">T</div><div class="text-gray-400">Q</div><div class="text-gray-400">Q</div><div class="text-gray-400">S</div><div class="text-gray-400">S</div>`; const year = currentDate.getFullYear(); const month = currentDate.getMonth(); monthYearEl.textContent = `${currentDate.toLocaleDateString('pt-BR', { month: 'long' })} ${year}`; const firstDayOfMonth = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for (let i = 0; i < firstDayOfMonth; i++) calendarGrid.appendChild(document.createElement('div')); for (let i = 1; i <= daysInMonth; i++) { const dayCell = document.createElement('div'); const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`; dayCell.textContent = i; dayCell.className = 'day-cell p-2 cursor-pointer rounded-full w-10 h-10 flex items-center justify-center mx-auto transition-colors'; dayCell.dataset.date = dateStr; const today = new Date(); if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear() && !selectedDates.includes(dateStr)) { dayCell.classList.add('bg-blue-600', 'text-white', 'font-semibold'); } else { dayCell.classList.add('hover:bg-gray-100'); } if (selectedDates.includes(dateStr)) { dayCell.classList.add('selected'); } if (appData[dateStr] && (appData[dateStr].harvests?.length > 0 || appData[dateStr].salePrice)) { dayCell.classList.add('relative'); const dot = document.createElement('span'); dot.className = 'absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full'; dayCell.appendChild(dot); } calendarGrid.appendChild(dayCell); } };
+            const openModal = (dateStr) => { selectedDate = dateStr; selectedDates = []; updateCalendarSelectionUI(); const dateObj = new Date(dateStr + 'T00:00:00'); modalDateEl.textContent = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); renderDayDetails(); dayModal.classList.remove('modal-exit-active'); dayModal.classList.add('modal-enter', 'modal-enter-active'); dayModal.classList.remove('translate-y-full'); };
+            const closeModal = () => { dayModal.classList.remove('modal-enter-active'); dayModal.classList.add('modal-exit-active'); dayModal.addEventListener('transitionend', () => { dayModal.classList.add('translate-y-full'); dayModal.classList.remove('modal-enter', 'modal-exit-active'); clearHarvestSelection(); }, { once: true }); renderCalendar(); };
+            const renderDayDetails = () => {
+                const dayData = appData[selectedDate] || { harvests: [], salePrice: null };
+                const price = dayData.salePrice || 0;
+                document.getElementById('current-sale-price').textContent = `R$ ${parseFloat(price).toFixed(2).replace('.', ',')}`;
+                setSalePriceForm.price.value = dayData.salePrice || '';
+                harvestListEl.innerHTML = '';
+                if (dayData.harvests && dayData.harvests.length > 0) {
+                    dayData.harvests.forEach(harvest => {
+                        const harvestItem = document.createElement('div');
+                        harvestItem.className = 'harvest-item bg-white p-4 rounded-xl text-sm border border-gray-200 shadow-sm space-y-3 transition-all duration-200 cursor-pointer';
+                        harvestItem.dataset.id = String(harvest.id);
+                        if (selectedHarvestIds.includes(String(harvest.id))) {
+                            harvestItem.classList.add('selected');
+                        }
+                        const recordTime = new Date(harvest.id).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                        harvestItem.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-semibold text-gray-800 pointer-events-none">${harvest.owner || 'Não especificado'}</p>
+                                    <p class="text-sm text-gray-500 pointer-events-none">${harvest.land || 'Não especificado'}</p>
+                                </div>
+                                <div class="text-right flex-shrink-0 ml-4 pointer-events-none">
+                                    <p class="text-2xl font-bold text-blue-600">${harvest.quantity}</p>
+                                    <p class="text-xs text-gray-500 -mt-1">Rasas</p>
+                                </div>
+                            </div>
+                            <div class="border-t border-gray-100 pt-3 flex justify-between items-center text-xs text-gray-500 pointer-events-none">
+                                <div class="flex items-center space-x-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    <span>${harvest.harvester || 'Não especificado'}</span>
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <span>Registrado às ${recordTime}</span>
+                                </div>
+                            </div>`;
+                        harvestListEl.appendChild(harvestItem);
+                    });
+                } else {
+                    harvestListEl.innerHTML = '<p class="text-gray-400 text-center py-4">Nenhuma colheita registrada.</p>';
+                }
+            };
+            const shareMultipleDates = () => { if (selectedDates.length === 0) return; const sortedDates = selectedDates.sort(); let allHarvests = []; let totalRasas = 0; let totalExtraKilos = 0; sortedDates.forEach(dateStr => { const dayData = appData[dateStr]; if (dayData && dayData.harvests?.length > 0) { allHarvests.push({ date: dateStr, harvests: dayData.harvests, salePrice: dayData.salePrice }); totalRasas += dayData.harvests.reduce((sum, h) => sum + h.quantity, 0); totalExtraKilos += dayData.harvests.reduce((sum, h) => sum + (h.extraKilos || 0), 0); } }); if (allHarvests.length === 0) { showToast('Nenhuma colheita nas datas selecionadas.'); return; } const firstDate = new Date(sortedDates[0] + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}); const lastDate = new Date(sortedDates[sortedDates.length - 1] + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: 'numeric'}); let shareText = `Relatório Consolidado de Colheitas\n`; shareText += `Período: ${firstDate} a ${lastDate}\n`; shareText += `Total de Dias com Registro: ${allHarvests.length}\n`; shareText += `Total de Rasas no Período: ${totalRasas}\n`; if(totalExtraKilos > 0) { shareText += `Total de Quilos Extras: ${String(totalExtraKilos.toFixed(1)).replace('.',',')} kg\n`; } allHarvests.forEach(({ date, harvests, salePrice }) => { const dateObj = new Date(date + 'T00:00:00'); const rawDateText = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }); const dateText = rawDateText.charAt(0).toUpperCase() + rawDateText.slice(1); shareText += `\n\n====================\n`; shareText += `${dateText}\n`; if (salePrice) { const formattedPrice = parseFloat(salePrice).toFixed(2).replace('.', ','); shareText += `Valor da Rasa: R$ ${formattedPrice}\n`; } shareText += `--------------------\n`; harvests.forEach(h => { let qtyText = `${h.quantity} rasas`; if (h.extraKilos > 0) { qtyText += ` + ${String(h.extraKilos).replace('.',',')} kg`; } shareText += `Prop.: ${h.owner || '-'} | Terr.: ${h.land || '-'} | Pec.: ${h.harvester || '-'} | Qtd: ${qtyText}\n`; }); }); if (navigator.share) { navigator.share({ title: 'Relatório de Colheitas', text: shareText }).catch(console.error); } else { showToast("Compartilhamento não suportado."); } };
+            
+            // --- Event Listeners ---
+            settingsBtn.addEventListener('click', openSettingsModal);
+            closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
+            exportDataBtn.addEventListener('click', exportData);
+            importDataBtn.addEventListener('click', () => importFileInput.click());
+            importFileInput.addEventListener('change', handleFileImport);
+            cancelImportBtn.addEventListener('click', closeImportConfirmModal);
+            confirmImportBtn.addEventListener('click', () => { if (dataToImport) { appData = dataToImport; if (!appData.management) { appData.management = { owners: [], lands: [], harvesters: [] }; } saveData(); renderCalendar(); closeImportConfirmModal(); closeSettingsModal(); showToast("Dados importados com sucesso!"); } });
+            
+            managementBtn.addEventListener('click', openManagementModal);
+            closeManagementModalBtn.addEventListener('click', closeManagementModal);
+            ownerForm.addEventListener('submit', (e) => { e.preventDefault(); const name = new FormData(e.target).get('name').trim(); addManagementItem('owners', name); e.target.reset(); });
+            landForm.addEventListener('submit', (e) => { e.preventDefault(); const name = new FormData(e.target).get('name').trim(); addManagementItem('lands', name); e.target.reset(); });
+            harvesterForm.addEventListener('submit', (e) => { e.preventDefault(); const name = new FormData(e.target).get('name').trim(); addManagementItem('harvesters', name); e.target.reset(); });
+            managementModal.addEventListener('click', (e) => { const deleteBtn = e.target.closest('.delete-management-item-btn'); if (deleteBtn) { const { name, category } = deleteBtn.dataset; deleteManagementItem(category, name); } });
+            
+            const ownerInput = harvestForm.querySelector('[name="owner"]');
+            const landInput = harvestForm.querySelector('[name="land"]');
+            const harvesterInput = harvestForm.querySelector('[name="harvester"]');
+            ownerInput.addEventListener('input', () => showSuggestions(ownerInput, 'owners'));
+            landInput.addEventListener('input', () => showSuggestions(landInput, 'lands'));
+            harvesterInput.addEventListener('input', () => showSuggestions(harvesterInput, 'harvesters'));
+            document.addEventListener('click', (e) => { if (!e.target.closest('.relative')) { document.querySelectorAll('.autocomplete-suggestions').forEach(el => el.classList.add('hidden')); } });
+
+            document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+            document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+            closeModalBtn.addEventListener('click', closeModal);
+            shareCalendarSelectionBtn.addEventListener('click', shareMultipleDates);
+            cancelCalendarSelectionBtn.addEventListener('click', clearCalendarSelection);
+            const formCancelBtn = document.getElementById('form-cancel-btn');
+            harvestForm.addEventListener('submit', (e) => { e.preventDefault(); const formData = new FormData(e.target); const id = formData.get('id') || Date.now(); const harvestData = { id: Number(id), owner: formData.get('owner'), land: formData.get('land'), harvester: formData.get('harvester'), quantity: parseInt(formData.get('quantity'), 10), extraKilos: parseFloat(formData.get('extraKilos')) || 0 }; if (!appData[selectedDate]) appData[selectedDate] = { harvests: [], salePrice: null }; const existingIndex = appData[selectedDate].harvests.findIndex(h => h.id === harvestData.id); if (existingIndex > -1) { appData[selectedDate].harvests[existingIndex] = harvestData; } else { appData[selectedDate].harvests.push(harvestData); } saveData(); clearHarvestSelection(); renderDayDetails(); closeHarvestForm(); });
+            const updateHarvestSelectionUI = () => { const count = selectedHarvestIds.length; if (count > 0) { selectionActions.classList.remove('hidden', 'actions-enter'); selectionActions.classList.add('actions-enter-active'); } else { selectionActions.classList.remove('actions-enter-active'); selectionActions.classList.add('actions-enter'); selectionActions.addEventListener('transitionend', () => selectionActions.classList.add('hidden'), { once: true }); harvestSelectionModeActive = false; } if (count === 1) { editSelectedBtn.disabled = false; editSelectedBtn.classList.remove('text-gray-400', 'cursor-not-allowed'); editSelectedBtn.classList.add('text-blue-600', 'hover:text-blue-800'); } else { editSelectedBtn.disabled = true; editSelectedBtn.classList.add('text-gray-400', 'cursor-not-allowed'); editSelectedBtn.classList.remove('text-blue-600', 'hover:text-blue-800'); } };
+            const toggleHarvestSelection = (id) => { const index = selectedHarvestIds.indexOf(id); if (index > -1) { selectedHarvestIds.splice(index, 1); } else { selectedHarvestIds.push(id); } if (selectedHarvestIds.length === 0) harvestSelectionModeActive = false; updateHarvestSelectionUI(); renderDayDetails(); };
+            const clearHarvestSelection = () => { selectedHarvestIds = []; harvestSelectionModeActive = false; updateHarvestSelectionUI(); renderDayDetails(); };
+            const openDeleteModal = () => { const count = selectedHarvestIds.length; if (count === 0) return; deleteConfirmTitle.textContent = `Excluir ${count} Colheita${count > 1 ? 's' : ''}`; deleteConfirmModal.classList.remove('hidden'); deleteConfirmModal.classList.add('fade-in'); };
+            const closeDeleteModal = () => { deleteConfirmModal.classList.add('fade-out'); deleteConfirmModal.addEventListener('animationend', () => { deleteConfirmModal.classList.add('hidden'); deleteConfirmModal.classList.remove('fade-out'); }, { once: true }); };
+            confirmDeleteBtn.addEventListener('click', () => { if (appData[selectedDate]) { appData[selectedDate].harvests = appData[selectedDate].harvests.filter(h => !selectedHarvestIds.includes(String(h.id))); saveData(); } closeDeleteModal(); clearHarvestSelection(); });
+            addHarvestBtn.addEventListener('click', () => { clearHarvestSelection(); showHarvestForm(); });
+            formCancelBtn.addEventListener('click', () => closeHarvestForm());
+            cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+            document.getElementById('edit-price-btn').addEventListener('click', (e) => { e.currentTarget.parentElement.classList.add('hidden'); document.getElementById('set-sale-price-form').classList.remove('hidden'); });
+            document.getElementById('cancel-edit-price-btn').addEventListener('click', (e) => { e.currentTarget.closest('form').classList.add('hidden'); document.getElementById('sale-price-display').classList.remove('hidden'); });
+            setSalePriceForm.addEventListener('submit', (e) => { e.preventDefault(); const price = parseFloat(new FormData(e.target).get('price')); if (!appData[selectedDate]) appData[selectedDate] = { harvests: [], salePrice: null }; appData[selectedDate].salePrice = price; saveData(); renderDayDetails(); document.getElementById('cancel-edit-price-btn').click(); });
+            editSelectedBtn.addEventListener('click', () => { if (selectedHarvestIds.length !== 1) return; const harvest = appData[selectedDate].harvests.find(h => String(h.id) === selectedHarvestIds[0]); showHarvestForm(harvest); });
+            deleteSelectedBtn.addEventListener('click', openDeleteModal);
+            cancelHarvestSelectionBtn.addEventListener('click', clearHarvestSelection);
+            shareSelectedBtn.addEventListener('click', () => { const harvestsToShare = appData[selectedDate]?.harvests.filter(h => selectedHarvestIds.includes(String(h.id))) || []; if (harvestsToShare.length === 0) return; const dateObj = new Date(selectedDate + 'T00:00:00'); const rawDateText = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }); const dateText = rawDateText.charAt(0).toUpperCase() + rawDateText.slice(1); const totalRasas = harvestsToShare.reduce((sum, h) => sum + h.quantity, 0); const totalExtraKilos = harvestsToShare.reduce((sum, h) => sum + (h.extraKilos || 0), 0); const salePrice = appData[selectedDate]?.salePrice; let shareText = `Relatório de Colheita - ${dateText}\n`; shareText += `Total de Registros: ${harvestsToShare.length}\n`; shareText += `Total de Rasas: ${totalRasas}\n`; if(totalExtraKilos > 0) { shareText += `Total de Quilos Extras: ${String(totalExtraKilos.toFixed(1)).replace('.',',')} kg\n`; } if (salePrice) { const formattedPrice = parseFloat(salePrice).toFixed(2).replace('.', ','); shareText += `Valor da Rasa: R$ ${formattedPrice}\n`; } harvestsToShare.forEach(harvest => { shareText += `\n--------------------\n`; shareText += `Proprietário: ${harvest.owner || '-'}\n`; shareText += `Terreno: ${harvest.land || '-'}\n`; shareText += `Peconheiro: ${harvest.harvester || '-'}\n`; let qtyText = `${harvest.quantity} rasas`; if (harvest.extraKilos > 0) { qtyText += ` + ${String(harvest.extraKilos).replace('.',',')} kg`; } shareText += `Quantidade: ${qtyText}`; }); if (navigator.share) { navigator.share({ title: 'Registros de Colheita', text: shareText }).catch(console.error); } else { showToast("Compartilhamento não suportado."); } });
+            const clearHarvestLongPressTimer = () => clearTimeout(harvestLongPressTimer);
+            const clearCalendarLongPressTimer = () => clearTimeout(calendarLongPressTimer);
+            calendarGrid.addEventListener('click', (e) => { const targetCell = e.target.closest('.day-cell'); if (!targetCell) return; if (calendarSelectionModeActive) { toggleDateSelection(targetCell.dataset.date); } else { openModal(targetCell.dataset.date); } });
+            const startCalendarPress = (targetCell) => { clearCalendarLongPressTimer(); if (calendarSelectionModeActive) return; calendarLongPressTimer = setTimeout(() => { calendarSelectionModeActive = true; toggleDateSelection(targetCell.dataset.date); }, 500); };
+            calendarGrid.addEventListener('mousedown', (e) => { const targetCell = e.target.closest('.day-cell'); if (targetCell) startCalendarPress(targetCell); });
+            calendarGrid.addEventListener('mouseup', clearCalendarLongPressTimer);
+            calendarGrid.addEventListener('touchstart', (e) => { const targetCell = e.target.closest('.day-cell'); if (targetCell) startCalendarPress(targetCell); }, { passive: true });
+            calendarGrid.addEventListener('touchend', clearCalendarLongPressTimer);
+            calendarGrid.addEventListener('touchmove', clearCalendarLongPressTimer);
+            
+            harvestListEl.addEventListener('click', (e) => {
+                const targetItem = e.target.closest('.harvest-item');
+                if (!targetItem) return;
+                if (harvestSelectionModeActive) {
+                    toggleHarvestSelection(targetItem.dataset.id);
+                }
+            });
+
+            const showHarvestForm = (harvest = null) => { harvestForm.reset(); harvestForm.querySelector('[name="id"]').value = harvest ? harvest.id : ''; if (harvest) { formTitle.textContent = 'Editar Colheita'; formSubmitBtn.textContent = 'Salvar Alterações'; harvestForm.querySelector('[name="owner"]').value = harvest.owner; harvestForm.querySelector('[name="land"]').value = harvest.land; harvestForm.querySelector('[name="harvester"]').value = harvest.harvester; harvestForm.querySelector('[name="quantity"]').value = harvest.quantity; harvestForm.querySelector('[name="extraKilos"]').value = harvest.extraKilos || ''; } else { formTitle.textContent = 'Registrar Nova Colheita'; formSubmitBtn.textContent = 'Registrar Colheita'; } harvestForm.classList.remove('hidden', 'form-enter'); harvestForm.classList.add('form-enter-active'); };
+            const closeHarvestForm = () => { harvestForm.classList.remove('form-enter-active'); harvestForm.classList.add('form-enter'); harvestForm.addEventListener('transitionend', () => harvestForm.classList.add('hidden'), { once: true }); };
+            const startHarvestPress = (targetItem) => {
+                clearHarvestLongPressTimer();
+                if (harvestSelectionModeActive) return;
+                harvestLongPressTimer = setTimeout(() => {
+                    harvestSelectionModeActive = true;
+                    selectedHarvestIds = [targetItem.dataset.id];
+                    updateHarvestSelectionUI();
+                    renderDayDetails();
+                }, 500);
+            };
+            harvestListEl.addEventListener('touchstart', (e) => { const targetItem = e.target.closest('.harvest-item'); if (targetItem) startHarvestPress(targetItem); }, { passive: true });
+            harvestListEl.addEventListener('touchend', clearHarvestLongPressTimer);
+            harvestListEl.addEventListener('touchmove', clearHarvestLongPressTimer);
+            harvestListEl.addEventListener('mousedown', (e) => { const targetItem = e.target.closest('.harvest-item'); if (targetItem) startHarvestPress(targetItem); });
+            harvestListEl.addEventListener('mouseup', clearHarvestLongPressTimer);
+            dayDetailsContent.addEventListener('click', (e) => { if (!e.target.closest('.harvest-item') && !e.target.closest('#selection-actions') && !e.target.closest('.quantity-display')) { if (harvestSelectionModeActive) clearHarvestSelection(); } });
+            
+            // Inicialização
+            renderCalendar();
+        });
+    </script>
+</body>
+</html>
+
